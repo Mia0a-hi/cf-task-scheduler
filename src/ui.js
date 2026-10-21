@@ -296,13 +296,9 @@ export function renderDashboardHtml() {
               <!-- 底部操作按钮 -->
               <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
                 <div class="flex items-center space-x-1">
-                  <button @click="runTaskNow(task)" :disabled="taskRunning[task.id]" class="px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-semibold flex items-center space-x-1 transition disabled:opacity-50">
+                  <button @click="runTaskNow(task)" :disabled="taskRunning[task.id]" class="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-semibold flex items-center space-x-1.5 transition disabled:opacity-50">
                     <i class="ph-bold ph-lightning text-amber-500"></i>
                     <span>{{ taskRunning[task.id] ? t('running') : t('testRun') }}</span>
-                  </button>
-                  <button @click="viewTaskLogs(task.id)" class="px-2.5 py-1.5 rounded-lg hover:bg-slate-100 text-slate-600 text-xs font-medium flex items-center space-x-1 transition">
-                    <i class="ph ph-file-text"></i>
-                    <span>{{ t('viewLogs') }}</span>
                   </button>
                 </div>
                 <div class="flex items-center space-x-1">
