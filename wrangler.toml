@@ -1,0 +1,16 @@
+name = "cf-task-scheduler"
+main = "src/index.js"
+compatibility_date = "2024-04-05"
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+crons = ["* * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "task_db"
+database_id = "your-database-id-here"
+
+[vars]
+TIMEZONE = "Asia/Shanghai"
+MAX_LOG_RETENTION_DAYS = "30"

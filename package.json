@@ -1,0 +1,29 @@
+{
+  "name": "cf-task-scheduler",
+  "version": "1.0.0",
+  "description": "Serverless Cron Task Scheduler & Management Dashboard on Cloudflare Workers + D1",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node test/verify.test.js",
+    "d1:init": "wrangler d1 execute task_db --local --file=./schema.sql",
+    "d1:remote": "wrangler d1 execute task_db --remote --file=./schema.sql"
+  },
+  "keywords": [
+    "cloudflare",
+    "cloudflare-workers",
+    "d1-database",
+    "cron",
+    "task-scheduler",
+    "serverless",
+    "automation",
+    "dashboard"
+  ],
+  "author": "CF Task Scheduler Contributors",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.114.0"
+  }
+}
