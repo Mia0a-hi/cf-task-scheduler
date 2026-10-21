@@ -1,0 +1,38 @@
+{
+  "STEPS": [
+    {
+      "name": "login_step",
+      "url": "https://api.example.com/api/v1/auth/login",
+      "method": "POST",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "account": "user_demo",
+        "secret": "password123"
+      },
+      "extract": {
+        "sessionToken": "data.accessToken",
+        "memberId": "data.user.id"
+      },
+      "sleep": 1000
+    },
+    {
+      "name": "checkin_step",
+      "url": "https://api.example.com/api/v1/user/checkin",
+      "method": "POST",
+      "headers": {
+        "Authorization": "Bearer {{sessionToken}}",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "uid": "{{memberId}}",
+        "client": "web"
+      }
+    }
+  ],
+  "WEBHOOK_URL": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_WECOM_KEY",
+  "WEBHOOK_TYPE": "wecom",
+  "NOTIFY_ALWAYS": "true",
+  "FAIL_ON_ERROR": "true"
+}

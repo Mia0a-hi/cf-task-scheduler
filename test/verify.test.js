@@ -47,6 +47,38 @@ async function runTests() {
   console.log('HTTP Execution status:', result.success ? 'PASS ✅' : 'FAIL ❌');
   console.log('HTTP Duration:', result.durationMs, 'ms');
 
+  console.log('\n--- 5. Testing Multi-Step Declarative Pipeline (STEPS) ---');
+  const multiStepResult = await executeScript(
+    'http',
+    {
+      STEPS: [
+        {
+          name: 'get_token',
+          url: 'https://httpbin.org/get?token=abc_token_999&uid=user_777',
+          method: 'GET',
+          extract: {
+            extractedToken: 'args.token',
+            extractedUid: 'args.uid'
+          }
+        },
+        {
+          name: 'use_token_checkin',
+          url: 'https://httpbin.org/post',
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer {{extractedToken}}',
+            'X-User-Id': '{{extractedUid}}'
+          },
+          body: {
+            status: 'checked_in'
+          }
+        }
+      ]
+    }
+  );
+  console.log('Multi-Step Execution status:', multiStepResult.success ? 'PASS ✅' : 'FAIL ❌');
+  console.log('Multi-Step Duration:', multiStepResult.durationMs, 'ms');
+
   console.log('\n========================================');
   console.log('  ALL OPEN SOURCE TEST SUITES PASSED! 🎉');
   console.log('========================================');

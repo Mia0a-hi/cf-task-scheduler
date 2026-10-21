@@ -1,0 +1,12 @@
+{
+  "URL": "https://api.vvhan.com/api/daily",
+  "METHOD": "GET",
+  "HEADERS": {
+    "User-Agent": "CF-Task-Scheduler/1.0",
+    "Accept": "application/json"
+  },
+  "WEBHOOK_URL": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_WECOM_KEY",
+  "WEBHOOK_TYPE": "wecom",
+  "NOTIFY_ALWAYS": "true",
+  "FAIL_ON_ERROR": "true"
+}
