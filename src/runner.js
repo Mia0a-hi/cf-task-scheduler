@@ -5,10 +5,23 @@
 
 import { TASK_MODULES } from './modules/index.js';
 
-function formatTimestamp() {
-  const d = new Date();
-  const beijingTime = new Date(d.getTime() + 8 * 3600000);
-  return beijingTime.toISOString().replace('T', ' ').replace('Z', '').substring(0, 19);
+function formatTimestamp(tz = 'Asia/Shanghai') {
+  try {
+    return new Intl.DateTimeFormat('zh-CN', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).format(new Date()).replace(/\//g, '-');
+  } catch {
+    const d = new Date();
+    const bj = new Date(d.getTime() + 8 * 3600000);
+    return bj.toISOString().replace('T', ' ').replace('Z', '').substring(0, 19);
+  }
 }
 
 // Built-in notification providers
@@ -24,7 +37,12 @@ const notifyHelpers = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    return await resp.json();
+    const text = await resp.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { status: resp.status, responseText: text.substring(0, 300) };
+    }
   },
 
   async feishu(webhookUrl, text) {

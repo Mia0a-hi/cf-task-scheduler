@@ -855,9 +855,31 @@ export function renderDashboardHtml() {
 
         const formatTime = (ts) => {
           if (!ts) return '';
-          const d = new Date(ts);
-          const locale = lang.value === 'zh' ? 'zh-CN' : 'en-US';
-          return d.toLocaleString(locale, { hour12: false });
+          try {
+            let s = String(ts).trim();
+            // Standardize SQLite "YYYY-MM-DD HH:MM:SS" UTC format to valid ISO with Z
+            if (!s.includes('T') && !s.includes('Z')) {
+              s = s.replace(' ', 'T') + 'Z';
+            } else if (s.includes('T') && !s.endsWith('Z') && !s.includes('+')) {
+              s += 'Z';
+            }
+            const d = new Date(s);
+            if (isNaN(d.getTime())) return ts;
+
+            const locale = lang.value === 'zh' ? 'zh-CN' : 'en-US';
+            return new Intl.DateTimeFormat(locale, {
+              timeZone: 'Asia/Shanghai',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false
+            }).format(d).replace(/\//g, '-');
+          } catch {
+            return ts;
+          }
         };
 
         const checkAuth = async () => {

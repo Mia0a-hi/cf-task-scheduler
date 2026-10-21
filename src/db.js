@@ -144,19 +144,21 @@ export async function getDueTasks(db, nowIsoString) {
 }
 
 export async function updateTaskRunResult(db, id, status, duration, nextRunAt) {
+  const nowIso = new Date().toISOString();
   await db.prepare(`
     UPDATE tasks
-    SET last_status = ?, last_duration = ?, last_run_at = CURRENT_TIMESTAMP, next_run_at = ?, updated_at = CURRENT_TIMESTAMP
+    SET last_status = ?, last_duration = ?, last_run_at = ?, next_run_at = ?, updated_at = ?
     WHERE id = ?
-  `).bind(status, duration, nextRunAt, id).run();
+  `).bind(status, duration, nowIso, nextRunAt, nowIso, id).run();
 }
 
 // Logs
 export async function createLog(db, { task_id, task_name, status, output, error = '', duration_ms, trigger_type = 'cron' }) {
+  const nowIso = new Date().toISOString();
   const res = await db.prepare(`
-    INSERT INTO task_logs (task_id, task_name, status, output, error, duration_ms, trigger_type)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).bind(task_id, task_name, status, output, error, duration_ms, trigger_type).run();
+    INSERT INTO task_logs (task_id, task_name, status, output, error, duration_ms, trigger_type, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(task_id, task_name, status, output, error, duration_ms, trigger_type, nowIso).run();
   return res.meta.last_row_id;
 }
 
