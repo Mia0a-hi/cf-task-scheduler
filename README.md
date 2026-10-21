@@ -22,11 +22,11 @@
 ### 📸 Preview / 界面预览
 
 <p align="center">
-  <img src="docs/images/dashboard-task.png" alt="CF Task Scheduler Dashboard & Task Modal" width="850" />
+  <img src="docs/images/login.png" alt="CF Task Scheduler Administrator Sign In" width="650" />
 </p>
 
 <p align="center">
-  <img src="docs/images/login.png" alt="CF Task Scheduler Administrator Sign In" width="650" />
+  <img src="docs/images/dashboard-task.png" alt="CF Task Scheduler Dashboard & Task Modal" width="850" />
 </p>
 
 ---

@@ -974,6 +974,17 @@ export function renderDashboardHtml() {
           }
         };
 
+        // Pre-hash password with username before transmission (ensures plaintext is never sent over the wire)
+        const hashClientPassword = async (password, username = 'admin') => {
+          const enc = new TextEncoder();
+          const cleanUser = String(username || 'admin').trim().toLowerCase();
+          const data = enc.encode(cleanUser + ':' + password);
+          const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+          return Array.from(new Uint8Array(hashBuffer))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+        };
+
         const handleInit = async () => {
           initError.value = '';
           if (initForm.value.password !== initForm.value.confirmPassword) {
@@ -982,10 +993,14 @@ export function renderDashboardHtml() {
           }
           submitting.value = true;
           try {
+            const securePassword = await hashClientPassword(initForm.value.password, initForm.value.username);
             const res = await fetch('/api/auth/init', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(initForm.value)
+              body: JSON.stringify({
+                username: initForm.value.username,
+                password: securePassword
+              })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Initialization failed');
@@ -1003,10 +1018,14 @@ export function renderDashboardHtml() {
           loginError.value = '';
           submitting.value = true;
           try {
+            const securePassword = await hashClientPassword(loginForm.value.password, loginForm.value.username);
             const res = await fetch('/api/auth/login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(loginForm.value)
+              body: JSON.stringify({
+                username: loginForm.value.username,
+                password: securePassword
+              })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Login failed');
@@ -1201,10 +1220,16 @@ export function renderDashboardHtml() {
           }
           submitting.value = true;
           try {
+            const currentUsername = (user.value && user.value.username) || 'admin';
+            const secureOldPassword = await hashClientPassword(pwdForm.value.oldPassword, currentUsername);
+            const secureNewPassword = await hashClientPassword(pwdForm.value.newPassword, currentUsername);
             const res = await fetch('/api/auth/password', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(pwdForm.value)
+              body: JSON.stringify({
+                oldPassword: secureOldPassword,
+                newPassword: secureNewPassword
+              })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Failed to update password');
