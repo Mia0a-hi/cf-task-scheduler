@@ -14,9 +14,9 @@ export function renderDashboardHtml() {
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Vue 3 -->
-  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.5.12/vue.global.prod.min.js"></script>
   <!-- Phosphor Icons -->
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@phosphor-icons/web"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -945,7 +945,7 @@ export function renderDashboardHtml() {
               minute: '2-digit',
               second: '2-digit',
               hour12: false
-            }).format(d).replace(/\//g, '-');
+            }).format(d).replaceAll('/', '-');
           } catch {
             return ts;
           }

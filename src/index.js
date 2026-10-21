@@ -136,6 +136,14 @@ export default {
       });
     }
 
+    // Route: Favicon
+    if (url.pathname === '/favicon.ico') {
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⚡</text></svg>';
+      return new Response(svg, {
+        headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }
+      });
+    }
+
     // Route: Get template definition
     if (url.pathname.startsWith('/api/templates/')) {
       const key = url.pathname.replace('/api/templates/', '');
