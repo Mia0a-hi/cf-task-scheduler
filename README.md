@@ -44,21 +44,39 @@ It requires **no dedicated servers**, **no VPS**, and **no complex Linux Crontab
 - **🔒 Irreversible PBKDF2 Password Security**:
   - Web Crypto standard **PBKDF2-SHA256** one-way hash algorithm.
   - Per-user **16-byte random salt** with **100,000 iterations**.
+  - Client-side pre-hashing ensures plaintext passwords never leave browser memory.
   - Mathematically irreversible, immune to rainbow tables and credential stuffing.
   - Constant-time verification (`crypto.subtle.timingSafeEqual`) to prevent timing side-channel attacks.
-- **⏰ Flexible Cron Engine**:
+- **⏰ Global Timezone Customization**:
   - Full support for 5-part Cron syntax (`0 8 * * *`, `*/15 * * * *`, `0 9 * * 1-5`, etc.).
-  - Built-in friendly Cron presets and human-readable schedule explanations.
+  - Built-in timezone selector covering 15+ major global regions with automatic DST handling and schedule recalibration.
 - **🌐 Universal HTTP / Webhook Runner**:
-  - Configure target URL, HTTP method (GET/POST/PUT/DELETE), headers, and request body directly in the Web UI.
-  - Driven purely by D1 database records without editing code.
+  - Single-request mode & declarative multi-step pipeline (`STEPS`).
+  - Driven purely by D1 database records without touching code.
 - **📜 Millisecond-Level Logging**:
   - Automatically captures all execution output, start/end timestamps, and elapsed time.
   - Interactive terminal modal in Web UI with one-click copy and auto-retention cleanup (30 days).
 - **🔔 Multi-Channel Notification Support**:
-  - Built-in helpers for WeCom Bot, Feishu / Lark Bot, Telegram Bot, and iOS Bark push notifications.
+  - Built-in helpers for WeCom Bot, Feishu / Lark Bot, and iOS Bark push notifications.
 - **🧩 Modular Architecture**:
   - Easily extend new task modules via `src/modules/` (see `CONTRIBUTING.md`).
+
+---
+
+### 📚 Task Examples & Workflows
+
+CF Task Scheduler provides 3 automation approaches for different complexity levels (see [`examples/`](./examples) for complete templates):
+
+| Approach | Directory | Complexity | Description |
+|---|---|:---:|---|
+| **Simple JSON** | [`examples/1-json-simple`](./examples/1-json-simple/) | ⭐ Zero-Code | Single-request HTTP API check-in, uptime ping, or daily digest. |
+| **Complex JSON Pipeline** | [`examples/2-json-complex`](./examples/2-json-complex/) | ⭐⭐ Zero-Code | Multi-step pipeline (`STEPS`). Step 1 logs in and extracts token (`extract`), Step 2 injects `{{sessionToken}}` for check-in. |
+| **Custom JS Module** | [`examples/3-js-complex`](./examples/3-js-complex/) | ⭐⭐⭐ Code Module | Standalone JS file in `src/modules/` for private encryption, dynamic signatures, or web scraping. |
+
+#### 🔔 Webhook Notification Specification
+Native support for **WeCom Bot (企业微信)**, **Feishu Bot (飞书)**, and **iOS Bark App**. See [`examples/WEBHOOK_SUPPORT.md`](./examples/WEBHOOK_SUPPORT.md) for full configuration specs.
+
+---
 
 ### 🚀 Quick Start (Local Development)
 
@@ -110,27 +128,44 @@ Open `http://localhost:8787` in your browser. On first visit, the system will pr
 ### 项目简介
 **CF Task Scheduler** 是一套专为 **Cloudflare 边缘生态** 设计的轻量级开箱即用定时任务平台（类似于运行在 Cloudflare Workers 上的轻量化「青龙面板」）。
 
-无需自备云服务器、无需配置 Linux Crontab，全部运行在 Cloudflare 全球边缘计算节点上。自带现代化响应式 Web 控制台，支持灵活的 Cron 定时表达式、任务环境变量管理、手动测试运行、毫秒级日志捕获与多渠道消息报警。
+无需自备云服务器、无需配置 Linux Crontab，全部运行在 Cloudflare 全球边缘计算节点上。自带现代化响应式 Web 控制台，支持中英双语切换、全球时区自适应、灵活的 Cron 表达式、环境变量管理、手动测试运行、毫秒级日志捕获与多渠道消息报警。
 
 ### ✨ 核心特性
 - **☁️ 零服务器成本**: 完全运行在 Cloudflare Workers 免费层（100,000 请求/天）与 D1 数据库，全球边缘节点就近调度。
-- **🔒 工业级密码安全 (不可逆加盐哈希)**:
-  - 采用 **Web Crypto 标准 PBKDF2-SHA256** 单向算法；
-  - 独立生成 **16 字节高熵随机盐 (Salt)**，迭代计算 **100,000 轮**；
-  - **绝不可逆、不可解密**，杜绝彩虹表撞库；
-  - 采用防时序攻击机制（`crypto.subtle.timingSafeEqual`）。
-- **⏰ 灵活的 Cron 调度**:
-  - 支持标准 5 位 Cron 语法（`0 8 * * *` 每日 8 点、`*/15 * * * *` 每 15 分钟、`0 9 * * 1-5` 工作日等）；
-  - 内置中文人性化 Cron 规则解析与一键预设。
+- **🔒 工业级密码安全 (前端预哈希 + 不可逆加盐哈希)**:
+  - 客户端浏览器通过 Web Crypto API 预计算哈希，明文密码**绝不出浏览器内存**；
+  - 后端采用 **PBKDF2-SHA256** 单向算法，**16 字节随机盐 (Salt) + 100,000 轮加盐迭代**；
+  - 绝不可逆、不可解密，杜绝彩虹表与拖库撞库；
+  - 比对采用防时序侧信道攻击机制（`crypto.subtle.timingSafeEqual`）。
+- **⏰ 全球时区自由定制**:
+  - 支持标准 5 位 Cron 语法（`0 8 * * *` 每日 8 点、`*/15 * * * *` 每 15 分钟等）；
+  - 内置覆盖亚太、欧美、标准时区的 15+ 主流时区选择器，修改时区后自动重新校准调度时间，支持夏令时动态推算。
 - **🌐 通用数据驱动 HTTP 引擎**:
-  - 在 Web 页面直接配置 URL、请求方式（GET/POST/PUT/DELETE）、请求头与请求体，纯 D1 数据库存储，零代码即可管理各类接口打卡与数据抓取。
+  - 支持单接口请求模式与**声明式多接口串联流水线 (`STEPS`)**，纯 D1 数据库存储，零代码即可实现登录鉴权与打卡联动。
 - **📜 毫秒级日志捕获与终端视图**:
   - 自动拦截任务运行中的所有日志输出并记录耗时；
   - 网页端终端弹窗高亮展示，支持一键复制，自动清理超过 30 天的历史日志。
 - **🔔 多通道消息推送集成**:
-  - 内置支持企业微信机器人、飞书机器人、Telegram Bot、iOS Bark 移动端推送。
+  - 原生内置支持企业微信机器人、飞书机器人、iOS Bark 移动端推送。
 - **🧩 模块化可扩展架构**:
   - 脚本与逻辑模块分离，便于轻松添加专属业务打卡/监控模块（参见 `CONTRIBUTING.md`）。
+
+---
+
+### 📚 实战任务案例库 (Task Examples)
+
+系统提供 3 种不同维度的自动化实现方式（完整可运行示例参见 [`examples/`](./examples) 目录）：
+
+| 类型 | 案例目录 | 难度 | 场景说明 |
+|---|---|:---:|---|
+| **JSON 简单案例** | [`examples/1-json-simple`](./examples/1-json-simple/) | ⭐ 0 代码 | 纯 Web 界面配置单接口打卡、健康检查或早报推送。 |
+| **JSON 复杂流水线** | [`examples/2-json-complex`](./examples/2-json-complex/) | ⭐⭐ 0 代码 | 纯 Web 界面配置声明式 `STEPS` 多接口串联（登录获取 Token $\rightarrow$ 提取变量 $\rightarrow$ 带 Token 签到）。 |
+| **JS 复杂模块** | [`examples/3-js-complex`](./examples/3-js-complex/) | ⭐⭐⭐ 代码级 | 针对特定私有哈希算法、签名防重放、深度抓取的独立 JavaScript 模块。 |
+
+#### 🔔 Webhook 告警与通知规范
+系统原生支持 **企业微信机器人**、**飞书机器人** 与 **iOS Bark 移动端推送**。详细环境变量字段与控制参数请参阅 [**WEBHOOK_SUPPORT.md**](./examples/WEBHOOK_SUPPORT.md)。
+
+---
 
 ### 🚀 快速开始与本地调试
 
@@ -180,6 +215,14 @@ npm run dev
 
 ```text
 cf-task-scheduler/
+├── examples/              # 自动化任务实战案例库与 Webhook 规范
+│   ├── 1-json-simple/     # 案例一：单接口简易配置 (0 代码)
+│   ├── 2-json-complex/    # 案例二：多接口串联流水线 (0 代码)
+│   ├── 3-js-complex/      # 案例三：自定义 JS 签名模块
+│   ├── README.md          # 范例总览
+│   └── WEBHOOK_SUPPORT.md # 官方 Webhook 字段规范文档
+├── docs/
+│   └── images/            # 仪表盘与登录界面高清截图
 ├── .gitignore             # Git 忽略配置
 ├── LICENSE                # MIT 开源许可证
 ├── package.json           # 项目配置与 NPM 脚本
@@ -200,7 +243,7 @@ cf-task-scheduler/
     ├── ui.js              # 响应式 Web 控制台（Tailwind + Vue 3）
     └── modules/
         ├── index.js       # 模块注册器
-        └── http.js        # 通用 HTTP/Webhook 调度引擎
+        └── http.js        # 通用 HTTP/Webhook 调度引擎 (支持 STEPS 流水线)
 ```
 
 ---
