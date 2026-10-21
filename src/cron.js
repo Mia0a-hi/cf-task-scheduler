@@ -107,31 +107,36 @@ export function getNextCronRun(cronString, fromDate = new Date(), tzOffsetHours 
 }
 
 /**
- * Convert cron to friendly readable text (Chinese)
+ * Convert cron to friendly readable text (Bilingual: zh / en)
  */
-export function describeCron(cronString) {
+export function describeCron(cronString, lang = 'zh') {
   try {
     const parts = cronString.trim().split(/\s+/);
     if (parts.length !== 5) return cronString;
 
     const [min, hour, dom, mon, dow] = parts;
+    const isEn = lang === 'en';
 
     if (min === '*' && hour === '*' && dom === '*' && mon === '*' && dow === '*') {
-      return '每分钟执行一次';
+      return isEn ? 'Every minute' : '每分钟执行一次';
     }
     if (min.startsWith('*/') && hour === '*' && dom === '*' && mon === '*' && dow === '*') {
-      return `每 ${min.substring(2)} 分钟执行一次`;
+      const step = min.substring(2);
+      return isEn ? `Every ${step} minutes` : `每 ${step} 分钟执行一次`;
     }
     if (min === '0' && hour.startsWith('*/') && dom === '*' && mon === '*' && dow === '*') {
-      return `每 ${hour.substring(2)} 小时整点执行`;
+      const step = hour.substring(2);
+      return isEn ? `Every ${step} hours on the hour` : `每 ${step} 小时整点执行`;
     }
     if (dom === '*' && mon === '*' && dow === '*') {
-      return `每天 ${hour.padStart(2, '0')}:${min.padStart(2, '0')} 执行`;
+      const timeStr = `${hour.padStart(2, '0')}:${min.padStart(2, '0')}`;
+      return isEn ? `Every day at ${timeStr}` : `每天 ${timeStr} 执行`;
     }
     if (dow === '1-5' && dom === '*' && mon === '*') {
-      return `工作日 (周一至周五) ${hour.padStart(2, '0')}:${min.padStart(2, '0')} 执行`;
+      const timeStr = `${hour.padStart(2, '0')}:${min.padStart(2, '0')}`;
+      return isEn ? `Weekdays (Mon-Fri) at ${timeStr}` : `工作日 (周一至周五) ${timeStr} 执行`;
     }
-    return `Cron 规则: ${cronString}`;
+    return isEn ? `Cron: ${cronString}` : `Cron 规则: ${cronString}`;
   } catch {
     return cronString;
   }
