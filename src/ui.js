@@ -416,6 +416,54 @@ export function renderDashboardHtml() {
             </form>
           </div>
 
+          <!-- 系统时区设置卡片 -->
+          <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
+            <h3 class="text-sm font-bold text-slate-900 mb-1">{{ t('tzSettingTitle') }}</h3>
+            <p class="text-xs text-slate-500 mb-4">{{ t('tzSettingDesc') }}</p>
+
+            <form @submit.prevent="handleSaveTimezone" class="space-y-3.5">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">{{ t('currentTimezone') }}</label>
+                <select v-model="selectedTz" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white outline-none">
+                  <optgroup :label="lang === 'zh' ? '🌏 亚太地区 (Asia & Pacific)' : '🌏 Asia & Pacific'">
+                    <option value="Asia/Shanghai">Asia/Shanghai (UTC+8: 北京 / 上海 / 香港 / 台北 / 新加坡)</option>
+                    <option value="Asia/Tokyo">Asia/Tokyo (UTC+9: 东京 / 首尔)</option>
+                    <option value="Asia/Bangkok">Asia/Bangkok (UTC+7: 曼谷 / 雅加达 / 河内)</option>
+                    <option value="Asia/Kolkata">Asia/Kolkata (UTC+5:30: 印度全境)</option>
+                    <option value="Asia/Dubai">Asia/Dubai (UTC+4: 迪拜 / 阿联酋)</option>
+                    <option value="Australia/Sydney">Australia/Sydney (UTC+10/+11: 悉尼 / 墨尔本)</option>
+                  </optgroup>
+                  <optgroup :label="lang === 'zh' ? '🌍 标准与欧洲 (Standard & Europe)' : '🌍 Standard & Europe'">
+                    <option value="UTC">UTC (UTC+0: 协调世界时 / 服务器标准)</option>
+                    <option value="Europe/London">Europe/London (UTC+0/+1: 伦敦 / 都柏林)</option>
+                    <option value="Europe/Paris">Europe/Paris (UTC+1/+2: 巴黎 / 柏林 / 罗马 / 法兰克福)</option>
+                    <option value="Europe/Moscow">Europe/Moscow (UTC+3: 莫斯科)</option>
+                  </optgroup>
+                  <optgroup :label="lang === 'zh' ? '🌎 美洲地区 (Americas)' : '🌎 Americas'">
+                    <option value="America/New_York">America/New_York (UTC-5/-4: 纽约 / 美东 EST)</option>
+                    <option value="America/Chicago">America/Chicago (UTC-6/-5: 芝加哥 / 美中 CST)</option>
+                    <option value="America/Denver">America/Denver (UTC-7/-6: 丹佛 / 山区 MST)</option>
+                    <option value="America/Los_Angeles">America/Los_Angeles (UTC-8/-7: 洛杉矶 / 硅谷 PST)</option>
+                    <option value="America/Sao_Paulo">America/Sao_Paulo (UTC-3: 圣保罗 / 巴西利亚)</option>
+                  </optgroup>
+                  <option value="custom">{{ t('tzCustomOption') }}</option>
+                </select>
+              </div>
+
+              <!-- 自定义 IANA 时区输入框 -->
+              <div v-if="selectedTz === 'custom'">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">{{ t('tzCustomLabel') }}</label>
+                <input v-model="customTzInput" type="text" required :placeholder="t('tzCustomPlaceholder')" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none font-mono">
+              </div>
+
+              <p v-if="tzMsg.text" :class="tzMsg.isError ? 'text-rose-600 bg-rose-50' : 'text-emerald-600 bg-emerald-50'" class="text-xs p-2.5 rounded-lg">{{ tzMsg.text }}</p>
+
+              <button type="submit" :disabled="submitting" class="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white font-medium text-xs rounded-xl shadow transition">
+                {{ t('saveTz') }}
+              </button>
+            </form>
+          </div>
+
           <!-- 环境信息 -->
           <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm text-xs text-slate-600 space-y-2">
             <h4 class="font-bold text-slate-900 mb-2">{{ t('deployInfo') }}</h4>
@@ -429,7 +477,7 @@ export function renderDashboardHtml() {
             </div>
             <div class="flex justify-between py-1 border-b border-slate-100">
               <span class="text-slate-400">{{ t('timezone') }}</span>
-              <span class="font-mono font-medium">Asia/Shanghai (UTC+8)</span>
+              <span class="font-mono font-semibold text-sky-600">{{ systemTimezone }}</span>
             </div>
             <div class="flex justify-between py-1">
               <span class="text-slate-400">{{ t('cronTrigger') }}</span>
@@ -672,7 +720,15 @@ export function renderDashboardHtml() {
         securityPolicy: '密码安全策略',
         secPolicyVal: 'WebCrypto PBKDF2-SHA256 (不可解密)',
         timezone: '时区支持',
-        cronTrigger: '定时触发器'
+        cronTrigger: '定时触发器',
+        tzSettingTitle: '系统运行与调度时区',
+        tzSettingDesc: '调整系统运行与日志渲染的时区。保存后将自动重新校准所有活动任务的下次执行时间。',
+        currentTimezone: '选择系统时区 (IANA Timezone)',
+        saveTz: '保存时区并校准调度',
+        tzSuccess: '✅ 时区已成功更新，所有活动任务已重新校准调度！',
+        tzCustomOption: '⚙️ 手动输入其他 IANA 时区...',
+        tzCustomLabel: '输入自定义 IANA 时区标识',
+        tzCustomPlaceholder: '如：Pacific/Auckland, Asia/Seoul'
       },
       en: {
         appSubtitle: 'Cloudflare Edge Task Scheduler',
@@ -780,7 +836,15 @@ export function renderDashboardHtml() {
         securityPolicy: 'Security Policy',
         secPolicyVal: 'WebCrypto PBKDF2-SHA256 (Irreversible)',
         timezone: 'Timezone',
-        cronTrigger: 'Cron Trigger'
+        cronTrigger: 'Cron Trigger',
+        tzSettingTitle: 'System Timezone Settings',
+        tzSettingDesc: 'Adjust execution and log rendering timezone. Saving will automatically recalibrate schedules for all active tasks.',
+        currentTimezone: 'Select System Timezone (IANA Timezone)',
+        saveTz: 'Save Timezone & Recalibrate',
+        tzSuccess: '✅ Timezone updated successfully! All active task schedules recalibrated.',
+        tzCustomOption: '⚙️ Custom IANA Timezone...',
+        tzCustomLabel: 'Enter Custom IANA Timezone Identifier',
+        tzCustomPlaceholder: 'e.g. Pacific/Auckland, Asia/Seoul'
       }
     };
 
@@ -815,6 +879,11 @@ export function renderDashboardHtml() {
         const loginError = ref('');
         const pwdForm = ref({ oldPassword: '', newPassword: '', confirmPassword: '' });
         const pwdMsg = ref({ text: '', isError: false });
+
+        const systemTimezone = ref(localStorage.getItem('cf_task_tz') || 'Asia/Shanghai');
+        const selectedTz = ref(systemTimezone.value);
+        const customTzInput = ref('');
+        const tzMsg = ref({ text: '', isError: false });
 
         const showTaskModal = ref(false);
         const isEditing = ref(false);
@@ -868,7 +937,7 @@ export function renderDashboardHtml() {
 
             const locale = lang.value === 'zh' ? 'zh-CN' : 'en-US';
             return new Intl.DateTimeFormat(locale, {
-              timeZone: 'Asia/Shanghai',
+              timeZone: systemTimezone.value || 'Asia/Shanghai',
               year: 'numeric',
               month: '2-digit',
               day: '2-digit',
@@ -886,6 +955,17 @@ export function renderDashboardHtml() {
           try {
             const res = await fetch('/api/auth/me');
             const data = await res.json();
+            if (data.timezone) {
+              systemTimezone.value = data.timezone;
+              const knownTzs = ['Asia/Shanghai', 'Asia/Tokyo', 'Asia/Bangkok', 'Asia/Kolkata', 'Asia/Dubai', 'Australia/Sydney', 'UTC', 'Europe/London', 'Europe/Paris', 'Europe/Moscow', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Sao_Paulo'];
+              if (knownTzs.includes(data.timezone)) {
+                selectedTz.value = data.timezone;
+              } else {
+                selectedTz.value = 'custom';
+                customTzInput.value = data.timezone;
+              }
+              localStorage.setItem('cf_task_tz', data.timezone);
+            }
             if (data.uninitialized) {
               isUninitialized.value = true;
             } else if (data.user) {
@@ -1141,6 +1221,49 @@ export function renderDashboardHtml() {
           }
         };
 
+        const handleSaveTimezone = async () => {
+          tzMsg.value = { text: '', isError: false };
+          const targetTz = selectedTz.value === 'custom' ? customTzInput.value.trim() : selectedTz.value;
+          if (!targetTz) {
+            tzMsg.value = { text: lang.value === 'zh' ? '请输入有效的时区名称' : 'Please provide a valid timezone name', isError: true };
+            return;
+          }
+
+          // Client-side quick check
+          try {
+            new Intl.DateTimeFormat('en-US', { timeZone: targetTz });
+          } catch {
+            tzMsg.value = { text: lang.value === 'zh' ? '无效的 IANA 时区标识 (如 Asia/Shanghai, UTC)' : 'Invalid IANA timezone identifier', isError: true };
+            return;
+          }
+
+          submitting.value = true;
+          try {
+            const res = await fetch('/api/settings/timezone', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ timezone: targetTz })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to update timezone');
+            systemTimezone.value = data.timezone;
+            const knownTzs = ['Asia/Shanghai', 'Asia/Tokyo', 'Asia/Bangkok', 'Asia/Kolkata', 'Asia/Dubai', 'Australia/Sydney', 'UTC', 'Europe/London', 'Europe/Paris', 'Europe/Moscow', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Sao_Paulo'];
+            if (knownTzs.includes(data.timezone)) {
+              selectedTz.value = data.timezone;
+            } else {
+              selectedTz.value = 'custom';
+              customTzInput.value = data.timezone;
+            }
+            localStorage.setItem('cf_task_tz', data.timezone);
+            tzMsg.value = { text: t('tzSuccess'), isError: false };
+            await loadTasks();
+          } catch (e) {
+            tzMsg.value = { text: e.message, isError: true };
+          } finally {
+            submitting.value = false;
+          }
+        };
+
         onMounted(() => {
           copyText.value = t('copyAll');
           checkAuth();
@@ -1164,6 +1287,11 @@ export function renderDashboardHtml() {
           loginError,
           pwdForm,
           pwdMsg,
+          systemTimezone,
+          selectedTz,
+          customTzInput,
+          tzMsg,
+          handleSaveTimezone,
           showTaskModal,
           isEditing,
           activeLogModal,

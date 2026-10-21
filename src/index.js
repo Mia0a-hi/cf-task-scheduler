@@ -47,17 +47,23 @@ function jsonResponse(data, status = 200, headers = {}) {
   });
 }
 
+async function getSystemTimezone(database, env) {
+  const tz = await db.getSetting(database, 'timezone');
+  return tz || env.TIMEZONE || 'Asia/Shanghai';
+}
+
 // Execute scheduled tasks
 async function handleScheduledEvent(env) {
   const database = env.DB;
   await db.initDb(database);
 
+  const tz = await getSystemTimezone(database, env);
   const now = new Date();
   const nowIso = now.toISOString();
 
   // Find all due tasks
   const dueTasks = await db.getDueTasks(database, nowIso);
-  console.log(`[Scheduler] Cron triggered: Found ${dueTasks.length} due task(s) to execute`);
+  console.log(`[Scheduler] Cron triggered (${tz}): Found ${dueTasks.length} due task(s) to execute`);
 
   for (const task of dueTasks) {
     console.log(`[Scheduler] Executing task #${task.id}: ${task.name}`);
@@ -84,7 +90,7 @@ async function handleScheduledEvent(env) {
     // Calculate next run time
     let nextRunIso = null;
     try {
-      const nextRunDate = getNextCronRun(task.cron, new Date(), 8);
+      const nextRunDate = getNextCronRun(task.cron, new Date(), tz);
       nextRunIso = nextRunDate.toISOString();
     } catch (e) {
       console.error(`[Scheduler] Failed to calculate next run time for #${task.id}:`, e);
@@ -154,7 +160,8 @@ export default {
       }
 
       const user = await db.getUserById(database, session.sub);
-      return jsonResponse({ user });
+      const timezone = await getSystemTimezone(database, env);
+      return jsonResponse({ user, timezone });
     }
 
     // Route: Initialize first admin user
@@ -173,7 +180,8 @@ export default {
       const userId = await db.createUser(database, username, passwordHash);
 
       // Pre-seed clean starter task into D1
-      await db.seedInitialTasks(database, getNextCronRun);
+      const tz = await getSystemTimezone(database, env);
+      await db.seedInitialTasks(database, (cron, date) => getNextCronRun(cron, date, tz));
 
       const jwtSecret = await getJwtSecret(database, env);
       const sessionToken = await createSessionToken(
@@ -259,8 +267,9 @@ export default {
     // Route: List Tasks
     if (url.pathname === '/api/tasks' && request.method === 'GET') {
       let tasks = await db.getTasks(database);
+      const tz = await getSystemTimezone(database, env);
       if (tasks.length === 0) {
-        await db.seedInitialTasks(database, getNextCronRun);
+        await db.seedInitialTasks(database, (cron, date) => getNextCronRun(cron, date, tz));
         tasks = await db.getTasks(database);
       }
       return jsonResponse({ tasks });
@@ -275,9 +284,10 @@ export default {
         return jsonResponse({ error: '名称、Cron 规则和执行脚本不可为空' }, 400);
       }
 
+      const tz = await getSystemTimezone(database, env);
       let nextRunIso = null;
       try {
-        const nextDate = getNextCronRun(cron, new Date(), 8);
+        const nextDate = getNextCronRun(cron, new Date(), tz);
         nextRunIso = nextDate.toISOString();
       } catch (err) {
         return jsonResponse({ error: 'Cron 规则解析失败: ' + err.message }, 400);
@@ -305,9 +315,10 @@ export default {
       const existing = await db.getTaskById(database, id);
       if (!existing) return jsonResponse({ error: '任务不存在' }, 404);
 
+      const tz = await getSystemTimezone(database, env);
       let nextRunIso = existing.next_run_at;
       try {
-        const nextDate = getNextCronRun(cron, new Date(), 8);
+        const nextDate = getNextCronRun(cron, new Date(), tz);
         nextRunIso = nextDate.toISOString();
       } catch (err) {
         return jsonResponse({ error: 'Cron 规则解析失败: ' + err.message }, 400);
@@ -340,11 +351,12 @@ export default {
       const task = await db.getTaskById(database, id);
       if (!task) return jsonResponse({ error: '任务不存在' }, 404);
 
+      const tz = await getSystemTimezone(database, env);
       const newEnabled = task.enabled ? 0 : 1;
       let nextRunIso = null;
       if (newEnabled) {
         try {
-          const nextDate = getNextCronRun(task.cron, new Date(), 8);
+          const nextDate = getNextCronRun(task.cron, new Date(), tz);
           nextRunIso = nextDate.toISOString();
         } catch {
           nextRunIso = null;
@@ -383,10 +395,11 @@ export default {
       });
 
       // Update task last status
+      const tz = await getSystemTimezone(database, env);
       let nextRunIso = task.next_run_at;
       if (task.enabled) {
         try {
-          nextRunIso = getNextCronRun(task.cron, new Date(), 8).toISOString();
+          nextRunIso = getNextCronRun(task.cron, new Date(), tz).toISOString();
         } catch {
           // keep previous
         }
@@ -402,6 +415,50 @@ export default {
 
       const logRecord = await db.getLogById(database, logId);
       return jsonResponse(logRecord);
+    }
+
+    // Route: Get Settings
+    if (url.pathname === '/api/settings' && request.method === 'GET') {
+      const tz = await getSystemTimezone(database, env);
+      return jsonResponse({ timezone: tz });
+    }
+
+    // Route: Update Timezone Setting
+    if (url.pathname === '/api/settings/timezone' && request.method === 'POST') {
+      const { timezone } = await request.json();
+      if (!timezone) {
+        return jsonResponse({ error: '请提供时区名称' }, 400);
+      }
+      try {
+        new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+      } catch {
+        return jsonResponse({ error: '无效的 IANA 时区标识 (如 Asia/Shanghai, UTC)' }, 400);
+      }
+
+      await db.setSetting(database, 'timezone', timezone);
+
+      // Recalculate next run time for all active tasks
+      const allTasks = await db.getTasks(database);
+      for (const t of allTasks) {
+        if (t.enabled) {
+          try {
+            const nextIso = getNextCronRun(t.cron, new Date(), timezone).toISOString();
+            await db.updateTask(database, t.id, {
+              name: t.name,
+              description: t.description,
+              cron: t.cron,
+              script: t.script,
+              env_vars: t.env_vars,
+              enabled: t.enabled,
+              next_run_at: nextIso
+            });
+          } catch (e) {
+            console.error(`Failed to recalculate task #${t.id}:`, e);
+          }
+        }
+      }
+
+      return jsonResponse({ success: true, timezone });
     }
 
     // Route: Get Logs

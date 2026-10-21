@@ -69,15 +69,40 @@ export function parseCron(cronString) {
 }
 
 /**
+ * Compute the dynamic offset in hours for an IANA timezone identifier at a given date
+ * Automatically handles Daylight Saving Time (DST)
+ * @param {string} timeZone IANA timezone (e.g. 'Asia/Shanghai', 'America/New_York', 'UTC')
+ * @param {Date} date 
+ * @returns {number} Offset in hours, e.g. 8 for UTC+8, -4 or -5 for New York
+ */
+export function getTimezoneOffsetHours(timeZone = 'Asia/Shanghai', date = new Date()) {
+  try {
+    const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+    const tzDate = new Date(date.toLocaleString('en-US', { timeZone }));
+    return (tzDate.getTime() - utcDate.getTime()) / 3600000;
+  } catch (err) {
+    return 8; // fallback to UTC+8
+  }
+}
+
+/**
  * Get next execution Date from a given timestamp
  * @param {string} cronString 
  * @param {Date|number} fromDate 
- * @param {number} tzOffsetHours Timezone offset in hours (default: 8 for Asia/Shanghai)
+ * @param {string|number} timeZoneOrOffset IANA timezone string or offset number in hours
  * @returns {Date}
  */
-export function getNextCronRun(cronString, fromDate = new Date(), tzOffsetHours = 8) {
+export function getNextCronRun(cronString, fromDate = new Date(), timeZoneOrOffset = 'Asia/Shanghai') {
   const parsed = parseCron(cronString);
-  const fromMs = typeof fromDate === 'number' ? fromDate : fromDate.getTime();
+  const fromDateObj = typeof fromDate === 'number' ? new Date(fromDate) : fromDate;
+  const fromMs = fromDateObj.getTime();
+
+  let tzOffsetHours = 8;
+  if (typeof timeZoneOrOffset === 'number') {
+    tzOffsetHours = timeZoneOrOffset;
+  } else if (typeof timeZoneOrOffset === 'string') {
+    tzOffsetHours = getTimezoneOffsetHours(timeZoneOrOffset, fromDateObj);
+  }
   
   let currentMs = Math.floor(fromMs / 60000) * 60000 + 60000;
   const maxMs = currentMs + 366 * 24 * 60 * 60 * 1000;

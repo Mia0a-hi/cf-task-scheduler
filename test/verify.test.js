@@ -1,5 +1,5 @@
 import { hashPassword, verifyPassword, createSessionToken, verifySessionToken } from '../src/auth.js';
-import { parseCron, getNextCronRun, describeCron } from '../src/cron.js';
+import { parseCron, getNextCronRun, describeCron, getTimezoneOffsetHours } from '../src/cron.js';
 import { executeScript } from '../src/runner.js';
 
 async function runTests() {
@@ -19,10 +19,25 @@ async function runTests() {
   const verified = await verifySessionToken(token, secret);
   console.log('Session token verified payload:', verified ? 'PASS ✅' : 'FAIL ❌', verified);
 
-  console.log('\n--- 3. Testing Cron Parsing & Scheduling ---');
-  const cronExpr = '*/15 * * * *';
-  const nextDate = getNextCronRun(cronExpr, new Date('2026-10-20T00:00:00Z'), 8);
-  console.log(`Cron: "${cronExpr}" (${describeCron(cronExpr)}) -> Next run:`, nextDate.toISOString());
+  console.log('\n--- 3. Testing Timezone-Aware Cron Scheduling ---');
+  const baseDate = new Date('2026-10-21T00:00:00Z');
+  
+  const offsetBJ = getTimezoneOffsetHours('Asia/Shanghai', baseDate);
+  const offsetNY = getTimezoneOffsetHours('America/New_York', baseDate);
+  const offsetUTC = getTimezoneOffsetHours('UTC', baseDate);
+  console.log(`Offsets: Asia/Shanghai=${offsetBJ}h, America/New_York=${offsetNY}h, UTC=${offsetUTC}h`);
+
+  const nextBJ = getNextCronRun('0 8 * * *', baseDate, 'Asia/Shanghai');
+  const nextNY = getNextCronRun('0 8 * * *', baseDate, 'America/New_York');
+  const nextUTC = getNextCronRun('0 8 * * *', baseDate, 'UTC');
+
+  console.log(`"0 8 * * *" Next run (Beijing):`, nextBJ.toISOString(), nextBJ.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }));
+  console.log(`"0 8 * * *" Next run (New York):`, nextNY.toISOString(), nextNY.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  console.log(`"0 8 * * *" Next run (UTC):`, nextUTC.toISOString(), nextUTC.toLocaleString('en-US', { timeZone: 'UTC' }));
+
+  const cron15 = '*/15 * * * *';
+  console.log(`Cron description (zh): "${describeCron(cron15, 'zh')}"`);
+  console.log(`Cron description (en): "${describeCron(cron15, 'en')}"`);
 
   console.log('\n--- 4. Testing Universal HTTP Execution ---');
   const result = await executeScript(
